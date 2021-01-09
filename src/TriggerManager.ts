@@ -18,6 +18,7 @@ import Trigger from "./Trigger";
 import WebRequestConfig from "./handlers/webRequest/WebRequestConfig";
 import ITriggerStatistics from "./types/ITriggerStatistics";
 import IConfiguration from "./types/IConfiguration";
+import ArchiveConfig from "./handlers/archiveManager/ArchiveManagerConfig";
 
 /**
  * Provides a running total of the number of times an image caused triggers
@@ -114,6 +115,9 @@ export function loadConfiguration(configurations: IConfiguration[]): IConfigurat
     }
     if (triggerJson.handlers.webRequest) {
       configuredTrigger.webRequestHandlerConfig = new WebRequestConfig(triggerJson.handlers.webRequest);
+    }
+    if (triggerJson.handlers.archiver) {
+      configuredTrigger.archiveConfig = new ArchiveConfig(triggerJson.handlers.archiver);
     }
 
     return configuredTrigger;
