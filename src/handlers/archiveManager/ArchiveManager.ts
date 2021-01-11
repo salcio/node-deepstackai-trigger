@@ -13,7 +13,7 @@ import IDeepStackPrediction from "../../types/IDeepStackPrediction";
 import * as LocalStorageManager from "../../LocalStorageManager";
 
 export async function initialize(): Promise<void> {
-  await mkdirp(path.join(LocalStorageManager.localStoragePath, "Archive"));
+  await mkdirp(path.join(LocalStorageManager.localStoragePath, "archive"));
 }
 
 export async function removeFile(fileName: string, trigger: Trigger): Promise<void[]> {
