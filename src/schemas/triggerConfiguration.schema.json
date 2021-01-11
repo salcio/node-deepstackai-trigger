@@ -106,6 +106,10 @@
               "telegram": {
                 "description": "Sets the configuration for a Telegram message.",
                 "$ref": "https://raw.githubusercontent.com/danecreekphotography/node-deepstackai-trigger/main/src/schemas/telegramHandlerConfiguration.schema.json"
+              },
+              "archiver": {
+                "description": "Sets the configuration for a Archiver handler.",
+                "$ref": "https://raw.githubusercontent.com/salcio/node-deepstackai-trigger/archiverPlugin/src/schemas/archiverConfiguration.schema.json"
               }
             }
           },
