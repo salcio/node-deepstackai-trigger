@@ -8,6 +8,7 @@ import ITelegramConfigJson from "../handlers/telegramManager/ITelegramConfigJson
 import IWebRequestHandlerJson from "../handlers/webRequest/IWebRequestHandlerJson";
 import Rect from "../Rect";
 import IPushbulletConfigJson from "../handlers/pushbulletManager/IPushoverConfigJson";
+import IArchiveManagerJson from "../handlers/archiveManager/IArchiveManagerJson";
 
 export default interface ITriggerJson {
   cooldownTime: number;
@@ -28,6 +29,7 @@ export default interface ITriggerJson {
     telegram: ITelegramConfigJson;
     pushbullet: IPushbulletConfigJson;
     pushover: IPushoverConfigJson;
+    archiver: IArchiveManagerJson;
   };
 
   masks: Rect[];

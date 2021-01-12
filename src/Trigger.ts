@@ -13,6 +13,7 @@ import * as Settings from "./Settings";
 import * as TelegramManager from "./handlers/telegramManager/TelegramManager";
 import * as TriggerManager from "./TriggerManager";
 import * as WebRequestHandler from "./handlers/webRequest/WebRequestHandler";
+import * as ArchiveManager from "./handlers/archiveManager/ArchiveManager";
 
 import analyzeImage from "./DeepStack";
 import IDeepStackPrediction from "./types/IDeepStackPrediction";
@@ -25,6 +26,7 @@ import Rect from "./Rect";
 import request from "request-promise-native";
 import WebRequestConfig from "./handlers/webRequest/WebRequestConfig";
 import ITriggerStatistics from "./types/ITriggerStatistics";
+import ArchiveConfig from "./handlers/archiveManager/ArchiveManagerConfig";
 
 export default class Trigger {
   private _initializedTime: Date;
@@ -63,6 +65,7 @@ export default class Trigger {
   public telegramConfig: TelegramConfig;
   public pushbulletConfig: PushbulletConfig;
   public pushoverConfig: PushoverConfig;
+  public archiveConfig: ArchiveConfig;
 
   constructor(init?: Partial<Trigger>) {
     Object.assign(this, init);
@@ -116,6 +119,7 @@ export default class Trigger {
     // Get the predictions, if any.
     const predictions = await this.analyzeImage(fileName);
     if (!predictions) {
+      ArchiveManager.removeFile(fileName, this);
       return;
     }
 
@@ -123,6 +127,7 @@ export default class Trigger {
     const triggeredPredictions = this.getTriggeredPredictions(fileName, predictions);
     if (!triggeredPredictions) {
       MqttManager.publishStatisticsMessage(TriggerManager.triggeredCount, TriggerManager.analyzedFilesCount);
+      ArchiveManager.removeFile(fileName, this);
       return;
     }
 
@@ -143,6 +148,7 @@ export default class Trigger {
     PushoverManager.processTrigger(fileName, this, triggeredPredictions);
     TelegramManager.processTrigger(fileName, this, triggeredPredictions);
     WebRequestHandler.processTrigger(fileName, this, triggeredPredictions);
+    ArchiveManager.processTrigger(fileName, this, triggeredPredictions);
 
     // Send the updated statistics.
     MqttManager.publishStatisticsMessage(TriggerManager.triggeredCount, TriggerManager.analyzedFilesCount);

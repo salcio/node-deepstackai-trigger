@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/salcio/node-deepstackai-trigger/archiverPlugin/src/schemas/archiverConfiguration.schema.json",
+  "type": "object",
+  "title": "The configuration for a archiver handler",
+  "description": "Defines the settings for a trigger handler that archives/cleans inputs.",
+  "required": [""],
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "description": "Enables the archiver handler on this trigger. Default is true.",
+      "type": "boolean",
+      "default": "true",
+      "examples": ["false"]
+    }
+  }
+}
