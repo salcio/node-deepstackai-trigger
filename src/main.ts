@@ -11,7 +11,7 @@ import * as chokidar from "chokidar";
 import * as LocalStorageManager from "./LocalStorageManager";
 import * as log from "./Log";
 import * as MqttManager from "./handlers/mqttManager/MqttManager";
-import * as ArchiveManager from "./handlers/archiveManager/ArchiveManager";
+import ArchiveManager from "./handlers/archiveManager/ArchiveManager";
 import * as MqttRouter from "./MqttRouter";
 import * as PushbulletManager from "./handlers/pushbulletManager/PushbulletManager";
 import * as PushoverManager from "./handlers/pushoverManager/PushoverManager";
@@ -51,7 +51,6 @@ async function startup(): Promise<void> {
   log.info("Main", `Starting up version ${npmPackageInfo.version}`);
   log.info("Main", `Timezone offset is ${new Date().getTimezoneOffset()}`);
   log.info("Main", `Current time is ${new Date()}`);
-
   try {
     // Load the settings file.
     settingsConfiguration = Settings.loadConfiguration([
@@ -112,6 +111,7 @@ async function startup(): Promise<void> {
     await PushbulletManager.initialize();
     await PushoverManager.initialize();
     await TelegramManager.initialize();
+
     await ArchiveManager.initialize();
 
     // Start listening for MQTT events
@@ -154,7 +154,7 @@ async function startup(): Promise<void> {
       log.info(
         "Main",
         `Startup reattempt ${restartAttemptCount} of ${maxRestartAttempts} in ${restartAttemptWaitTime /
-          1000} seconds.`,
+        1000} seconds.`,
       );
       restartTimer = setTimeout(startup, restartAttemptWaitTime);
     } else {
@@ -177,6 +177,7 @@ async function shutdown(): Promise<void> {
   await stopWatching();
   await TriggerManager.stopWatching();
   await WebServer.stopApp();
+  await ArchiveManager.shutDown();
 }
 
 /**

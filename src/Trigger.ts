@@ -13,7 +13,7 @@ import * as Settings from "./Settings";
 import * as TelegramManager from "./handlers/telegramManager/TelegramManager";
 import * as TriggerManager from "./TriggerManager";
 import * as WebRequestHandler from "./handlers/webRequest/WebRequestHandler";
-import * as ArchiveManager from "./handlers/archiveManager/ArchiveManager";
+import ArchiveManager from "./handlers/archiveManager/ArchiveManager";
 
 import analyzeImage from "./DeepStack";
 import IDeepStackPrediction from "./types/IDeepStackPrediction";
