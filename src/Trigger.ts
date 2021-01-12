@@ -112,7 +112,10 @@ export default class Trigger {
     this.analyzedFilesCount += 1;
 
     // Don't process old files.
-    if (!(await this.passesDateTest(fileName))) return;
+    if (!(await this.passesDateTest(fileName))) {
+      ArchiveManager.removeFile(fileName, this);
+      return;
+    }
 
     this._lastTriggerTime = new Date();
 
