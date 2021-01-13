@@ -112,21 +112,21 @@ async function publishDetectionMessage(
     }
 
     // Set the new timer
-    _timers.set(messageConfig.topic, setTimeout(publishOffEvent, messageConfig.offDelay * 1000, messageConfig.topic));
+    _timers.set(messageConfig.topic, setTimeout(publishOffEvent, messageConfig.offDelay * 1000, messageConfig.topic, path.basename(fileName)));
   }
 
   // Build the detection payload
   const detectionPayload = messageConfig.payload
     ? mustacheFormatter.format(messageConfig.payload, fileName, trigger, predictions)
     : JSON.stringify({
-        analysisDurationMs: trigger.analysisDuration,
-        basename: path.basename(fileName),
-        fileName,
-        formattedPredictions: mustacheFormatter.formatPredictions(predictions),
-        name: trigger.name,
-        predictions,
-        state: "on",
-      });
+      analysisDurationMs: trigger.analysisDuration,
+      basename: path.basename(fileName),
+      fileName,
+      formattedPredictions: mustacheFormatter.formatPredictions(predictions),
+      name: trigger.name,
+      predictions,
+      state: "on",
+    });
 
   return client.publish(messageConfig.topic, detectionPayload, { retain: retain });
 }
@@ -207,6 +207,6 @@ export async function publishServerState(state: string, details?: string): Promi
  * Sends a message indicating the motion for a particular trigger has stopped
  * @param topic The topic to publish the message on
  */
-async function publishOffEvent(topic: string): Promise<MQTT.IPublishPacket> {
-  return await client.publish(topic, JSON.stringify({ state: "off" }), { retain: retain });
+async function publishOffEvent(topic: string, fileName: string): Promise<MQTT.IPublishPacket> {
+  return await client.publish(topic, JSON.stringify({ state: "off", basename: fileName }), { retain: retain });
 }
