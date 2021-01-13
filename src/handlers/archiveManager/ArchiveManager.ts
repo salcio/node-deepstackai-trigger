@@ -83,7 +83,10 @@ export default class ArchiveManager {
 
   static getFiles(fileName: string): string[] {
     const movieFileName = `${path.join(path.dirname(fileName), path.basename(fileName, path.extname(fileName)))}.mp4`;
-    return [fileName, movieFileName];
+    const fileNameWithoutIndex = path.basename(fileName).substring(0, path.basename(fileName).length - 7);
+    const fileNameIndex = parseInt(fileName.substr(-7).substring(0, 3)) - 1;
+    const movieFileNameIndexed = `${path.join(path.dirname(fileName), fileNameWithoutIndex)}${('000000000' + fileNameIndex).substr(-3)}.mp4`;
+    return [fileName, movieFileName, movieFileNameIndexed];
   }
 
   static markFileForAction(fileName: string, action: string): void {
