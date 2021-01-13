@@ -27,6 +27,7 @@ import request from "request-promise-native";
 import WebRequestConfig from "./handlers/webRequest/WebRequestConfig";
 import ITriggerStatistics from "./types/ITriggerStatistics";
 import ArchiveConfig from "./handlers/archiveManager/ArchiveManagerConfig";
+import { TriggerFlags } from "./triggerFlags";
 
 export default class Trigger {
   private _initializedTime: Date;
@@ -127,10 +128,11 @@ export default class Trigger {
     }
 
     // Check to see if any predictions cause this to activate.
-    const triggeredPredictions = this.getTriggeredPredictions(fileName, predictions);
-    if (!triggeredPredictions) {
+    const predictionsWithFlags = this.getPredictionsWithTriggerFlags(fileName, predictions);
+    const triggeredPredictions = predictionsWithFlags.filter(f => f.triggeredFlags.isTriggered).map(f => f.prediction);
+    if (!triggeredPredictions || !triggeredPredictions.length) {
       MqttManager.publishStatisticsMessage(TriggerManager.triggeredCount, TriggerManager.analyzedFilesCount);
-      ArchiveManager.removeFile(fileName, this);
+      ArchiveManager.processTrigger(fileName, this, null, predictionsWithFlags);
       return;
     }
 
@@ -162,13 +164,11 @@ export default class Trigger {
    * @param predictions The list of predictions to check
    * @returns The predictions that are within the confidence range for requested objects
    */
-  private getTriggeredPredictions(
+  private getPredictionsWithTriggerFlags(
     fileName: string,
     predictions: IDeepStackPrediction[],
-  ): IDeepStackPrediction[] | undefined {
-    const triggeredPredictions = predictions.filter(prediction => this.isTriggered(fileName, prediction));
-
-    return triggeredPredictions.length ? triggeredPredictions : undefined;
+  ): { prediction: IDeepStackPrediction, triggeredFlags: TriggerFlags }[] | undefined {
+    return predictions.map(prediction => ({ prediction, triggeredFlags: this.isTriggered(fileName, prediction) }));
   }
 
   /**
@@ -218,21 +218,23 @@ export default class Trigger {
    * @param confidence The confidence level of the identification
    * @returns True if the label is associated with the trigger and the confidence is within the threshold range
    */
-  private isTriggered(fileName: string, prediction: IDeepStackPrediction): boolean {
+  private isTriggered(fileName: string, prediction: IDeepStackPrediction): TriggerFlags {
     const { confidence, label } = prediction;
     const scaledConfidence = confidence * 100;
-    const isTriggered =
-      this.isRegisteredForObject(fileName, label) &&
-      this.confidenceMeetsThreshold(fileName, scaledConfidence) &&
-      !this.isMasked(fileName, this.masks, true, prediction) &&
-      this.isMasked(fileName, this.activateRegions, false, prediction);
-
-    if (!isTriggered) {
+    const result = {
+      registered: this.isRegisteredForObject(fileName, label),
+      confidenceThresholdMet: this.confidenceMeetsThreshold(fileName, scaledConfidence),
+      blockingMaskOverlap: this.isMasked(fileName, this.masks, true, prediction),
+      activeRegionOverlap: this.isMasked(fileName, this.activateRegions, false, prediction),
+      isTriggered: false
+    }
+    result.isTriggered = result.registered && result.confidenceThresholdMet && !result.blockingMaskOverlap && result.activeRegionOverlap;
+    if (!result.isTriggered) {
       log.verbose(`Trigger ${this.name}`, `${fileName}: Not triggered by ${label} (${scaledConfidence})`);
     } else {
       log.verbose(`Trigger ${this.name}`, `${fileName}: Triggered by ${label} (${scaledConfidence})`);
     }
-    return isTriggered;
+    return result;
   }
 
   /**
