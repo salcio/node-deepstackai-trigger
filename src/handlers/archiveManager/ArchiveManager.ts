@@ -12,6 +12,7 @@ import { promises as fsPromise } from "fs";
 import IDeepStackPrediction from "../../types/IDeepStackPrediction";
 import * as LocalStorageManager from "../../LocalStorageManager";
 import { TriggerFlags } from "../..//triggerFlags";
+import ArchiveConfig from "./ArchiveManagerConfig";
 
 type Element = {
   action: string;
@@ -19,6 +20,8 @@ type Element = {
   attempt: number;
   success: boolean;
   folder: string;
+  dateAdded: Date;
+  dateToArchive: Date;
 };
 
 export default class ArchiveManager {
@@ -53,7 +56,7 @@ export default class ArchiveManager {
       return [];
     }
 
-    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'remove')));
+    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'remove', trigger.archiveConfig)));
   }
 
   /**
@@ -71,15 +74,24 @@ export default class ArchiveManager {
     if (!trigger?.archiveConfig?.enabled) {
       return [];
     }
-    const folder = predictionsWithFlags && predictionsWithFlags.filter(f => f.triggeredFlags.registered && f.triggeredFlags.confidenceThresholdMet)
-      ? ArchiveManager.SemiMatchedFolder
-      : ArchiveManager.ArchiveFolder;
-    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'move', folder)));
+    let folder = ArchiveManager.ArchiveFolder;
+    if (predictionsWithFlags) {
+      if (trigger.archiveConfig.semiMatchedArchiveEnabled && predictionsWithFlags.filter(f => f.triggeredFlags.registered && f.triggeredFlags.confidenceThresholdMet).length > 0) {
+        log.verbose("Archiver", `semi matched file ${fileName}. Adding to archive log.`);
+        folder = ArchiveManager.SemiMatchedFolder
+      } else {
+        return ArchiveManager.removeFile(fileName, trigger);
+      }
+    }
+    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'move', trigger.archiveConfig, folder)));
   }
 
   public static async runLog(): Promise<void> {
     ArchiveManager.archiverLog = ArchiveManager.archiverLog || [];
     const result = Promise.all(ArchiveManager.archiverLog.map(element => {
+      if (!ArchiveManager.canAction(element)) {
+        return;
+      }
       element.attempt++;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (<Promise<void>>(<any>ArchiveManager)[element.action](element));
@@ -87,7 +99,7 @@ export default class ArchiveManager {
       ArchiveManager.archiverLog = ArchiveManager.archiverLog.filter(e => !e.success && e.attempt <= 3);
     });
 
-    ArchiveManager._backgroundTimer = setTimeout(ArchiveManager.runLog, 60000);
+    ArchiveManager._backgroundTimer = setTimeout(ArchiveManager.runLog, 6000);
 
     return result;
   }
@@ -100,11 +112,15 @@ export default class ArchiveManager {
     return [fileName, movieFileName, movieFileNameIndexed];
   }
 
-  static markFileForAction(fileName: string, action: string, folder?: string): void {
-    ArchiveManager.archiverLog.push({ action: action, file: fileName, attempt: 0, success: false, folder: folder });
+  static markFileForAction(fileName: string, action: string, config: ArchiveConfig, folder?: string,): void {
+    ArchiveManager.archiverLog.push({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
   }
 
   static async move(element: Element): Promise<void> {
+    if (!ArchiveManager.canAction(element)) {
+      return;
+    }
+
     const file = element.file;
     log.verbose("Archiver", `coping ${file}, attempt: ${element.attempt}`);
 
@@ -116,7 +132,14 @@ export default class ArchiveManager {
   }
 
   static async remove(file: Element): Promise<void> {
+    if (!ArchiveManager.canAction(file)) {
+      return;
+    }
     log.verbose("Archiver", `remove ${file.file}, attempt: ${file.attempt}`);
     await fsPromise.unlink(file.file).then(() => file.success = true, e => log.warn("Archiver", `Unable to remove file: ${e.message}`));
+  }
+
+  static canAction(element: Element): boolean {
+    return element.dateToArchive <= new Date();
   }
 }

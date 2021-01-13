@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/danecreekphotography/node-deepstackai-trigger/main/src/schemas/triggerConfiguration.schema.json",
+  "$schema": "https://raw.githubusercontent.com/salcio/node-deepstackai-trigger/archiverPlugin/src/schemas/triggerConfiguration.schema.json",
   "triggers": [
     {
       "name": "Cat detector",
@@ -18,6 +18,9 @@
         },
         "telegram": {
           "chatIds": [1]
+        },
+        "archiver":{
+          "enabled":true
         }
       },
       "watchObjects": ["cat"]
@@ -43,6 +46,11 @@
         "telegram": {
           "chatIds": [1],
           "annotateImage": true
+        },
+        "archiver":{
+          "enabled":true,
+          "timeToKeep":6000,
+          "semiMatchedArchiveEnabled"
         }
       },
       "watchObjects": ["dog"]

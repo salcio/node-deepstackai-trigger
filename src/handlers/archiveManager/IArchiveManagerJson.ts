@@ -5,4 +5,8 @@
 
 export default interface IArchiveManagerJson {
   enabled: boolean;
+  // milliseconds to keep file before archiving
+  timeToKeep: number;
+  // should we archive images blocked by masks into semidetached folder ?
+  semiMatchedArchiveEnabled: boolean;
 }

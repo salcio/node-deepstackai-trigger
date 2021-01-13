@@ -18,6 +18,9 @@
         },
         "telegram": {
           "chatIds": [1]
+        },
+        "archiver": {
+          "enabled": true
         }
       },
       "watchObjects": ["cat"]
@@ -53,7 +56,8 @@
           "annotateImage": true
         },
         "archiver": {
-          "enabled": true
+          "enabled": true,
+          "timeToKeep":6000
         }
       },
       "watchObjects": ["dog"]

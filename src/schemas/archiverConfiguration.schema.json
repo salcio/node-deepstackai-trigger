@@ -12,6 +12,18 @@
       "type": "boolean",
       "default": "true",
       "examples": ["false"]
+    },
+    "timeToKeep": {
+      "description": "milliseconds to keep file before archiving. Default 60000.",
+      "type": "number",
+      "default": 60000,
+      "examples": [60000]
+    },
+    "semiMatchedArchiveEnabled": {
+      "description": "should we archive images blocked by masks into semidetached folder ?. Default is false.",
+      "type": "boolean",
+      "default": "false",
+      "examples": ["false"]
     }
   }
 }

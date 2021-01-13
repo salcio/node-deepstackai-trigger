@@ -221,14 +221,18 @@ export default class Trigger {
   private isTriggered(fileName: string, prediction: IDeepStackPrediction): TriggerFlags {
     const { confidence, label } = prediction;
     const scaledConfidence = confidence * 100;
-    const result = {
+    const result = <TriggerFlags>{
       registered: this.isRegisteredForObject(fileName, label),
       confidenceThresholdMet: this.confidenceMeetsThreshold(fileName, scaledConfidence),
-      blockingMaskOverlap: this.isMasked(fileName, this.masks, true, prediction),
-      activeRegionOverlap: this.isMasked(fileName, this.activateRegions, false, prediction),
-      isTriggered: false
+    };
+
+    if (result.registered && result.confidenceThresholdMet) {
+      result.blockingMaskOverlap = this.isMasked(fileName, this.masks, true, prediction);
+      result.activeRegionOverlap = this.isMasked(fileName, this.activateRegions, false, prediction);
     }
+
     result.isTriggered = result.registered && result.confidenceThresholdMet && !result.blockingMaskOverlap && result.activeRegionOverlap;
+
     if (!result.isTriggered) {
       log.verbose(`Trigger ${this.name}`, `${fileName}: Not triggered by ${label} (${scaledConfidence})`);
     } else {
