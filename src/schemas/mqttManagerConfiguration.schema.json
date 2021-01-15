@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "https://raw.githubusercontent.com/danecreekphotography/node-deepstackai-trigger/main/src/schemas/mqttManagerConfiguration.schema.json",
+  "$id": "https://raw.githubusercontent.com/salcio/node-deepstackai-trigger/archiverPlugin/src/schemas/mqttManagerConfiguration.schema.json",
   "type": "object",
   "title": "The configuration for an MQTT server",
   "description": "Defines the connection information for an MQTT server that will receive trigger notifications.",
@@ -28,6 +28,12 @@
       "default": false,
       "examples": ["true"]
     },
+    "heartBeatInterval": {
+      "description": "How often we should send heart beat (in minutes). Default 3.",
+      "type": "number",
+      "default": 3,
+      "examples": [3]
+    },    
     "rejectUnauthorized": {
       "description": "Controls whether connections to mqtts:// servers should allow self-signed certificates. Set to false if your MQTT certificates are self-signed and are getting connection errors.",
       "type": "boolean",

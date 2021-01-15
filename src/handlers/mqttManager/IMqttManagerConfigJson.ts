@@ -9,4 +9,5 @@ export default interface IMqttManagerConfigJson {
   retain?: boolean;
   uri: string;
   username: string;
+  heartBeatInterval: number;
 }

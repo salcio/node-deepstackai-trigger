@@ -21,6 +21,8 @@ const _statisticsTopicPrefix = "node-deepstackai-trigger/statistics";
 
 const _timers = new Map<string, NodeJS.Timeout>();
 
+let _backgroundTimer: NodeJS.Timeout;
+
 /**
  * Initializes the MQTT using settings from the global Settings module.
  */
@@ -60,6 +62,48 @@ export async function initialize(): Promise<void> {
   });
 
   log.info("MQTT", `Connected to MQTT server ${settings.uri}`);
+
+  startHeartBeat();
+}
+
+/**
+ * Sends heart beat from MQTT.
+ */
+function startHeartBeat(): void {
+  if (settings.heartBeatInterval > 0) {
+    log.verbose(
+      "MQTT",
+      `Enabling heartbeat every ${settings.heartBeatInterval} minutes.`,
+    );
+    _backgroundTimer = setTimeout(sendHeartBeat, settings.heartBeatInterval * 60000);
+  }
+  else {
+    log.verbose(
+      "MQTT",
+      `Heartbeat is disabled via settings.`,
+    );
+  }
+}
+
+/**
+ * Stops the background purge process from running.
+ */
+export function stopHeartBeat(): void {
+  clearTimeout(_backgroundTimer);
+  log.verbose("MQTT", `heart beat stopped.`);
+}
+
+/**
+ * Purges files older than the purgeThreshold from MQTT.
+ */
+async function sendHeartBeat(): Promise<void> {
+  log.verbose("MQTT", "Sending heart beat");
+
+  publishServerState("online");
+
+  if (settings.heartBeatInterval > 0) {
+    _backgroundTimer = setTimeout(sendHeartBeat, settings.heartBeatInterval * 60000);
+  }
 }
 
 export async function processTrigger(
@@ -114,6 +158,7 @@ async function publishDetectionMessage(
     // Set the new timer
     _timers.set(messageConfig.topic, setTimeout(publishOffEvent, messageConfig.offDelay * 1000, messageConfig.topic, path.basename(fileName)));
   }
+  _backgroundTimer?.refresh();
 
   // Build the detection payload
   const detectionPayload = messageConfig.payload
@@ -174,6 +219,7 @@ export async function publishStatisticsMessage(
   if (!client) {
     return [];
   }
+  _backgroundTimer?.refresh();
 
   return [
     await client.publish(
@@ -199,6 +245,7 @@ export async function publishServerState(state: string, details?: string): Promi
   if (!client) {
     return;
   }
+  _backgroundTimer?.refresh();
 
   return client.publish(_statusTopic, JSON.stringify({ state, details }), { retain: retain });
 }
@@ -208,5 +255,6 @@ export async function publishServerState(state: string, details?: string): Promi
  * @param topic The topic to publish the message on
  */
 async function publishOffEvent(topic: string, fileName: string): Promise<MQTT.IPublishPacket> {
+  _backgroundTimer?.refresh();
   return await client.publish(topic, JSON.stringify({ state: "off", basename: fileName }), { retain: retain });
 }

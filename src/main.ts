@@ -177,6 +177,7 @@ async function shutdown(e?: any): Promise<void> {
   await stopWatching();
   await TriggerManager.stopWatching();
   await WebServer.stopApp();
+  await MqttManager.stopHeartBeat();
   await ArchiveManager.shutDown();
 }
 

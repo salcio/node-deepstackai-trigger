@@ -65,6 +65,7 @@ export function loadConfiguration(configurations: IConfiguration[]): IConfigurat
   // when enableAnnotations is true.
   enableWebServer = enableAnnotations ? true : settingsConfigJson.enableWebServer ?? false;
   mqtt = settingsConfigJson.mqtt;
+  mqtt.heartBeatInterval = mqtt.heartBeatInterval ?? 3;
   port = settingsConfigJson.port ?? 4242;
   processExistingImages = settingsConfigJson.processExistingImages ?? false;
   purgeAge = settingsConfigJson.purgeAge ?? 30;
