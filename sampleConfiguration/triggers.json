@@ -50,7 +50,7 @@
         "archiver":{
           "enabled":true,
           "timeToKeep":6000,
-          "semiMatchedArchiveEnabled"
+          "semiMatchedArchiveEnabled":true
         }
       },
       "watchObjects": ["dog"]

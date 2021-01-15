@@ -141,11 +141,8 @@ async function startup(): Promise<void> {
       "Startup failed due to errors. For troubleshooting assistance see https://github.com/danecreekphotography/node-deepstackai-trigger/wiki/Troubleshooting.",
     );
 
-    // Notify it's not up and running
-    await MqttManager.publishServerState("offline", e.message);
-
     // Shutdown the web server plus other things that may have spun up successfully.
-    await shutdown();
+    await shutdown(e);
 
     restartAttemptCount++;
 
@@ -170,8 +167,11 @@ async function startup(): Promise<void> {
 /**
  * Shuts down all registered file system watchers and the web server
  */
-async function shutdown(): Promise<void> {
+async function shutdown(e?: any): Promise<void> {
   clearTimeout(restartTimer);
+
+  // Notify it's not up and running
+  await MqttManager.publishServerState("offline", e?.message);
 
   // Shut down things that are running
   await stopWatching();
