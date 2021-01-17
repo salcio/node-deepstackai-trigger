@@ -13,6 +13,7 @@ import IDeepStackPrediction from "../../types/IDeepStackPrediction";
 import * as LocalStorageManager from "../../LocalStorageManager";
 import { TriggerFlags } from "../..//triggerFlags";
 import ArchiveConfig from "./ArchiveManagerConfig";
+import moment from "moment";
 
 type Element = {
   action: string;
@@ -49,14 +50,14 @@ export default class ArchiveManager {
     log.verbose("ArchiveManager", `Archiver initialized.`);
   }
 
-  public static async removeFile(fileName: string, trigger: Trigger): Promise<void[]> {
+  public static async removeFile(fileName: string, trigger: Trigger): Promise<void> {
     // It's possible to not set up a web request handler on a trigger or to disable it, so don't
     // process if that's the case.
     if (!trigger?.archiveConfig?.enabled) {
-      return [];
+      return null;
     }
 
-    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'remove', trigger.archiveConfig)));
+    return ArchiveManager.markFileForAction(fileName, 'remove', trigger.archiveConfig);
   }
 
   /**
@@ -68,11 +69,11 @@ export default class ArchiveManager {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     predictions: IDeepStackPrediction[],
     predictionsWithFlags?: { prediction: IDeepStackPrediction, triggeredFlags: TriggerFlags }[],
-  ): Promise<void[]> {
+  ): Promise<void> {
     // It's possible to not set up a web request handler on a trigger or to disable it, so don't
     // process if that's the case.
     if (!trigger?.archiveConfig?.enabled) {
-      return [];
+      return null;
     }
     let folder = ArchiveManager.ArchiveFolder;
     if (predictionsWithFlags) {
@@ -83,7 +84,7 @@ export default class ArchiveManager {
         return ArchiveManager.removeFile(fileName, trigger);
       }
     }
-    return Promise.all(ArchiveManager.getFiles(fileName).map(f => ArchiveManager.markFileForAction(f, 'move', trigger.archiveConfig, folder)));
+    return ArchiveManager.markFileForAction(fileName, 'move', trigger.archiveConfig, folder);
   }
 
   public static async runLog(): Promise<void> {
@@ -104,39 +105,53 @@ export default class ArchiveManager {
     return result;
   }
 
-  static getFiles(fileName: string): string[] {
-    const movieFileName = `${path.join(path.dirname(fileName), path.basename(fileName, path.extname(fileName)))}.mp4`;
-    const fileNameWithoutIndex = path.basename(fileName).substring(0, path.basename(fileName).length - 7);
-    const fileNameIndex = parseInt(fileName.substr(-7).substring(0, 3)) - 1;
-    const movieFileNameIndexed = `${path.join(path.dirname(fileName), fileNameWithoutIndex)}${('000000000' + fileNameIndex).substr(-3)}.mp4`;
-    return [fileName, movieFileName, movieFileNameIndexed];
+  static async getFiles(fileName: string): Promise<string[]> {
+    const fileNameBase=`${path.join(path.dirname(fileName), path.basename(fileName).substring(0,7))}`;
+    const fileNameDateString = path.basename(fileName).substring(7, path.basename(fileName).length - 4);
+    const fileNameDateStart = moment(fileNameDateString,"YYYYMMDDHHmmss").add(-3,"seconds");
+    const filePromises = Array.from(Array<number>(4).keys())
+      .map(()=>{
+        const r = `${fileNameBase}${fileNameDateStart.add(1,"seconds").format("YYYYMMDDHHmmss")}.mp4`;
+        return fsPromise.stat(r).then(s => {return s.isFile()?r:null;}).catch(() => {return null});
+      });
+    
+    return [fileName,
+      ...(await Promise.all(filePromises)).filter(r=>r!=null)
+    ];
   }
 
   static markFileForAction(fileName: string, action: string, config: ArchiveConfig, folder?: string,): void {
     ArchiveManager.archiverLog.push({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
   }
 
-  static async move(element: Element): Promise<void> {
+  static async move(element: Element): Promise<void[]> {
     if (!ArchiveManager.canAction(element)) {
       return;
     }
 
-    const file = element.file;
-    log.verbose("Archiver", `coping ${file}, attempt: ${element.attempt}`);
+    return Promise.all((await this.getFiles(element.file)).map(file=>
+      {
+        log.verbose("Archiver", `coping ${file}, attempt: ${element.attempt}`);
 
-    const localFileName = path.join(LocalStorageManager.localStoragePath, element.folder || ArchiveManager.ArchiveFolder, path.basename(file));
-    await fsPromise.copyFile(file, localFileName).then(
-      () => { element.action = 'remove'; ArchiveManager.remove(element); },
-      e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); },
-    );
+        const localFileName = path.join(LocalStorageManager.localStoragePath, element.folder || ArchiveManager.ArchiveFolder, path.basename(file));
+        return fsPromise.copyFile(file, localFileName).then(
+          () => { return fsPromise.unlink(file).then(r=>{element.success=true;return r;},e => log.warn("Archiver", `Unable to remove file: ${e.message}`)) },
+          e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); },
+        );
+      }));
   }
 
-  static async remove(file: Element): Promise<void> {
-    if (!ArchiveManager.canAction(file)) {
-      return;
+  static async remove(element: Element): Promise<void[]> {
+    if (!ArchiveManager.canAction(element)) {
+      return [];
     }
-    log.verbose("Archiver", `remove ${file.file}, attempt: ${file.attempt}`);
-    await fsPromise.unlink(file.file).then(() => file.success = true, e => log.warn("Archiver", `Unable to remove file: ${e.message}`));
+    return Promise.all((await this.getFiles(element.file)).map(file=>
+      {
+        log.verbose("Archiver", `remove ${file}, attempt: ${element.attempt}`);
+        return fsPromise.unlink(file);
+      })).then(
+        r => {element.success = true;return r;},
+        e => {log.warn("Archiver", `Unable to remove file: ${e.message}`); return []});
   }
 
   static canAction(element: Element): boolean {
