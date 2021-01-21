@@ -108,7 +108,7 @@ export default class ArchiveManager {
   static async getFiles(fileName: string): Promise<string[]> {
     const fileBaseName = path.basename(fileName);
     const lastUnderscoreIndex = fileBaseName.lastIndexOf('_');
-    const fileNameBase=`${path.join(path.dirname(fileName), fileBaseName.substring(0,lastUnderscoreIndex))}`;
+    const fileNameBase=`${path.join(path.dirname(fileName), fileBaseName.substring(0,lastUnderscoreIndex+1))}`;
     const fileNameDateString = fileBaseName.substring(lastUnderscoreIndex+1, fileBaseName.length - 4);
     const fileNameDateStart = moment(fileNameDateString,"YYYYMMDDHHmmss").add(-3,"seconds");
     const filePromises = Array.from(Array<number>(4).keys())
