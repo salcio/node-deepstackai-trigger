@@ -214,6 +214,7 @@ export async function publishTriggerStatisticsMessage(trigger: Trigger): Promise
 export async function publishStatisticsMessage(
   triggerCount: number,
   analyzedFilesCount: number,
+  fileName?: string
 ): Promise<MQTT.IPublishPacket[]> {
   // Don't send anything if MQTT isn't enabled
   if (!client) {
@@ -230,6 +231,7 @@ export async function publishStatisticsMessage(
         analyzedFilesCount,
         formattedStatistics: mustacheFormatter.formatStatistics(triggerCount, analyzedFilesCount),
         state: "online",
+        fileName: fileName,
         triggerCount,
       }),
       { retain: retain },

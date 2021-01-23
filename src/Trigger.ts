@@ -132,7 +132,7 @@ export default class Trigger {
     const predictionsWithFlags = this.getPredictionsWithTriggerFlags(fileName, predictions);
     const triggeredPredictions = predictionsWithFlags.filter(f => f.triggeredFlags.isTriggered).map(f => f.prediction);
     if (!triggeredPredictions || !triggeredPredictions.length) {
-      MqttManager.publishStatisticsMessage(TriggerManager.triggeredCount, TriggerManager.analyzedFilesCount);
+      MqttManager.publishStatisticsMessage(TriggerManager.triggeredCount, TriggerManager.analyzedFilesCount, fileName);
       ArchiveManager.processTrigger(fileName, this, null, predictionsWithFlags);
       return;
     }
