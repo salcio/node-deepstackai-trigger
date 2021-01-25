@@ -108,22 +108,33 @@ export default class ArchiveManager {
   static async getFiles(fileName: string): Promise<string[]> {
     const fileBaseName = path.basename(fileName);
     const lastUnderscoreIndex = fileBaseName.lastIndexOf('_');
-    const fileNameBase=`${path.join(path.dirname(fileName), fileBaseName.substring(0,lastUnderscoreIndex+1))}`;
-    const fileNameDateString = fileBaseName.substring(lastUnderscoreIndex+1, fileBaseName.length - 4);
-    const fileNameDateStart = moment(fileNameDateString,"YYYYMMDDHHmmss").add(-3,"seconds");
+    const fileNameBase = `${path.join(path.dirname(fileName), fileBaseName.substring(0, lastUnderscoreIndex + 1))}`;
+    const fileNameDateString = fileBaseName.substring(lastUnderscoreIndex + 1, fileBaseName.length - 4);
+    const fileNameDateStart = moment(fileNameDateString, "YYYYMMDDHHmmss").add(-3, "seconds");
     const filePromises = Array.from(Array<number>(4).keys())
-      .map(()=>{
-        const r = `${fileNameBase}${fileNameDateStart.add(1,"seconds").format("YYYYMMDDHHmmss")}.mp4`;
-        return fsPromise.stat(r).then(s => {return s.isFile()?r:null;}).catch(() => {return null});
+      .map(() => {
+        const r = `${fileNameBase}${fileNameDateStart.add(1, "seconds").format("YYYYMMDDHHmmss")}.mp4`;
+        return fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null });
       });
-    
+
     return [fileName,
-      ...(await Promise.all(filePromises)).filter(r=>r!=null)
+      ...(await Promise.all(filePromises)).filter(r => r != null)
     ];
   }
 
   static markFileForAction(fileName: string, action: string, config: ArchiveConfig, folder?: string,): void {
-    ArchiveManager.archiverLog.push({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
+    const existing = ArchiveManager.archiverLog.filter(e => e.file == fileName && e.folder == folder)[0];
+    if (!existing) {
+      ArchiveManager.archiverLog.push({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
+    }
+    else {
+      if (existing.action == "remove") {
+        existing.action = action;
+        existing.attempt = 0;
+        existing.dateAdded = new Date();
+        existing.dateToArchive = new Date(new Date().getTime() + config.timeToKeep);
+      }
+    }
   }
 
   static async move(element: Element): Promise<void[]> {
@@ -131,29 +142,27 @@ export default class ArchiveManager {
       return;
     }
 
-    return Promise.all((await this.getFiles(element.file)).map(file=>
-      {
-        log.verbose("Archiver", `coping ${file}, attempt: ${element.attempt}`);
+    return Promise.all((await this.getFiles(element.file)).map(file => {
+      log.verbose("Archiver", `coping ${file}, attempt: ${element.attempt}`);
 
-        const localFileName = path.join(LocalStorageManager.localStoragePath, element.folder || ArchiveManager.ArchiveFolder, path.basename(file));
-        return fsPromise.copyFile(file, localFileName).then(
-          () => { return fsPromise.unlink(file).then(r=>{element.success=true;return r;},e => log.warn("Archiver", `Unable to remove file: ${e.message}`)) },
-          e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); },
-        );
-      }));
+      const localFileName = path.join(LocalStorageManager.localStoragePath, element.folder || ArchiveManager.ArchiveFolder, path.basename(file));
+      return fsPromise.copyFile(file, localFileName).then(
+        () => { return fsPromise.unlink(file).then(r => { element.success = true; return r; }, e => log.warn("Archiver", `Unable to remove file: ${e.message}`)) },
+        e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); },
+      );
+    }));
   }
 
   static async remove(element: Element): Promise<void[]> {
     if (!ArchiveManager.canAction(element)) {
       return [];
     }
-    return Promise.all((await this.getFiles(element.file)).map(file=>
-      {
-        log.verbose("Archiver", `remove ${file}, attempt: ${element.attempt}`);
-        return fsPromise.unlink(file);
-      })).then(
-        r => {element.success = true;return r;},
-        e => {log.warn("Archiver", `Unable to remove file: ${e.message}`); return []});
+    return Promise.all((await this.getFiles(element.file)).map(file => {
+      log.verbose("Archiver", `remove ${file}, attempt: ${element.attempt}`);
+      return fsPromise.unlink(file);
+    })).then(
+      r => { element.success = true; return r; },
+      e => { log.warn("Archiver", `Unable to remove file: ${e.message}`); return [] });
   }
 
   static canAction(element: Element): boolean {
