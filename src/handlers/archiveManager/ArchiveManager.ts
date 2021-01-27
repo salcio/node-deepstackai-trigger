@@ -70,6 +70,7 @@ class MotionEvent {
       (await this.getPossibleFiles()).map(async f => {
         if (actionForAdditionalFiles === 'move') {
           await move(f, this.getDestinationFolderForFile(f));
+          return;
         }
         await remove(f);
         return;
