@@ -110,12 +110,15 @@ export default class ArchiveManager {
     const lastUnderscoreIndex = fileBaseName.lastIndexOf('_');
     const fileNameBase = `${path.join(path.dirname(fileName), fileBaseName.substring(0, lastUnderscoreIndex + 1))}`;
     const fileNameDateString = fileBaseName.substring(lastUnderscoreIndex + 1, fileBaseName.length - 4);
-    const fileNameDateStart = moment(fileNameDateString, "YYYYMMDDHHmmss").add(-3, "seconds");
-    const filePromises = Array.from(Array<number>(4).keys())
+    const fileNameDateStart = moment(fileNameDateString, "YYYYMMDDHHmmss").add(-4, "seconds");
+    const filePromises = [].concat(...Array.from(Array<number>(8).keys())
       .map(() => {
         const r = `${fileNameBase}${fileNameDateStart.add(1, "seconds").format("YYYYMMDDHHmmss")}.mp4`;
-        return fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null });
-      });
+        const ratt = `${fileNameBase.replace('_att', '')}${fileNameDateStart.add(1, "seconds").format("YYYYMMDDHHmmss")}.mp4`;
+        return [fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null }),
+        r != ratt ? fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null }) : null];
+      }))
+      .filter(f => f != null);
 
     return [fileName,
       ...(await Promise.all(filePromises)).filter(r => r != null)
