@@ -160,6 +160,7 @@ export default class ArchiveManager {
   public static async initialize(): Promise<void> {
     await mkdirp(path.join(LocalStorageManager.localStoragePath, ArchiveManager.ArchiveFolder));
     await mkdirp(path.join(LocalStorageManager.localStoragePath, ArchiveManager.SemiMatchedFolder));
+    await mkdirp(path.join(LocalStorageManager.localStoragePath, ArchiveManager.ArchiveFolder, LocalStorageManager.Locations.Annotations));
     ArchiveManager.archiverLog = [];
     ArchiveManager.runLog();
     log.verbose("ArchiveManager", `Archiver initialized.`);
