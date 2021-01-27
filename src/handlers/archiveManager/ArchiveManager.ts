@@ -51,28 +51,29 @@ class MotionEvent {
     return this.elements.reduce((p, c) => p && c.dateToArchive <= new Date(), true);
   }
 
-  public async archive(move: (filePath: string, folderToMoveTo: string) => Promise<boolean>, remove: (filePath: string) => Promise<boolean>): Promise<void> {
+  public async archive(move: (filePath: string, folderToMoveTo: string) => Promise<boolean>, remove: (filePath: string) => Promise<boolean>): Promise<void[]> {
     if (!this.canAction()) {
       return;
     }
     log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements.`);
 
     const actionForAdditionalFiles = this.elements.filter(f => f.action === 'move') ? 'move' : 'remove';
-    this.elements.forEach(e => {
-      if (e.action === 'move') {
-        move(e.file, e.folder).then(r => e.success = r);
-      } else {
-        remove(e.file).then(r => e.success = r);
-      }
+    return Promise.all(this.elements.map(async e => {
       e.attempt++;
-    });
-    (await this.getPossibleFiles()).forEach(f => {
-      if (actionForAdditionalFiles === 'move') {
-        move(f, this.getDestinationFolderForFile(f));
-      } else {
-        remove(f);
+      if (e.action === 'move') {
+        e.success = await move(e.file, e.folder);
+        return;
       }
-    });
+      e.success = await remove(e.file);
+      return;
+    }).concat(
+      (await this.getPossibleFiles()).map(async f => {
+        if (actionForAdditionalFiles === 'move') {
+          await move(f, this.getDestinationFolderForFile(f));
+        }
+        await remove(f);
+        return;
+      })));
   }
 
   getDestinationFolderForFile(f: string): string {
