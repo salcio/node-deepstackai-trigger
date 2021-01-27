@@ -114,7 +114,7 @@ export default class ArchiveManager {
     const filePromises = [].concat(...Array.from(Array<number>(8).keys())
       .map(() => {
         const r = `${fileNameBase}${fileNameDateStart.add(1, "seconds").format("YYYYMMDDHHmmss")}.mp4`;
-        const ratt = `${fileNameBase.replace('_att', '')}${fileNameDateStart.add(1, "seconds").format("YYYYMMDDHHmmss")}.mp4`;
+        const ratt = `${fileNameBase.replace('_att', '')}${fileNameDateStart.format("YYYYMMDDHHmmss")}.mp4`;
         return [fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null }),
         r != ratt ? fsPromise.stat(r).then(s => { return s.isFile() ? r : null; }).catch(() => { return null }) : null];
       }))
