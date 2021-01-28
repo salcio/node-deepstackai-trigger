@@ -83,7 +83,7 @@ class MotionEvent {
     if (f.indexOf(LocalStorageManager.Locations.Annotations) >= 0) {
       subFolder = LocalStorageManager.Locations.Annotations;
     }
-    return path.join(folder || ArchiveManager.ArchiveFolder, moment(this.startTime).format('YYYY/MM/DD'), this.eventId, subFolder);
+    return path.join(folder || ArchiveManager.ArchiveFolder, moment(this.startTime).format('YYYY/MM/DD'), this.eventId, moment(this.startTime).format('HHmmss'), subFolder);
   }
 
   public isArchived(): boolean {
