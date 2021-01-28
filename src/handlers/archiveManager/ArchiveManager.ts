@@ -57,19 +57,20 @@ class MotionEvent {
     }
     log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements.`);
 
-    const actionForAdditionalFiles = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
+    const eventMainAction = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
+    const destinationFolder = this.elements.filter(f => f.action === 'move' && f.folder).map(f => f.folder).reduce((p, c) => (c == p || c == null) ? p : p == null ? c : null);
     return Promise.all(this.elements.map(async e => {
       e.attempt++;
-      if (e.action === 'move') {
-        e.success = await move(e.file, e.folder);
+      if (e.action === 'move' || eventMainAction === 'move') {
+        e.success = await move(e.file, this.getDestinationFolderForFile(e.file, destinationFolder || e.folder));
         return;
       }
       e.success = await remove(e.file);
       return;
     }).concat(
       (await this.getPossibleFiles()).map(async f => {
-        if (actionForAdditionalFiles === 'move') {
-          await move(f, this.getDestinationFolderForFile(f));
+        if (eventMainAction === 'move') {
+          await move(f, this.getDestinationFolderForFile(f, destinationFolder));
           return;
         }
         await remove(f);
@@ -77,11 +78,12 @@ class MotionEvent {
       })));
   }
 
-  getDestinationFolderForFile(f: string): string {
+  getDestinationFolderForFile(f: string, folder: string): string {
+    let subFolder = "";
     if (f.indexOf(LocalStorageManager.Locations.Annotations) >= 0) {
-      return path.join(ArchiveManager.ArchiveFolder, LocalStorageManager.Locations.Annotations);
+      subFolder = LocalStorageManager.Locations.Annotations;
     }
-    return null;
+    return path.join(folder || ArchiveManager.ArchiveFolder, moment(this.startTime).format('YYYY/MM/DD'), this.eventId, subFolder);
   }
 
   public isArchived(): boolean {
@@ -231,7 +233,13 @@ export default class ArchiveManager {
   static async move(filePath: string, folderToMoveTo: string): Promise<boolean> {
     log.verbose("Archiver", `coping ${filePath}`);
 
-    const localFileName = path.join(LocalStorageManager.localStoragePath, folderToMoveTo || ArchiveManager.ArchiveFolder, path.basename(filePath));
+    const localFilePath = path.join(LocalStorageManager.localStoragePath, folderToMoveTo || ArchiveManager.ArchiveFolder);
+    const localFileName = path.join(localFilePath, path.basename(filePath));
+
+    if (!await fsPromise.mkdir(localFilePath, { recursive: true }).then(() => true, e => { log.warn("Archiver", `Unable to create destination folder file: ${localFilePath} ${e.message}`); return false; })) {
+      return;
+    }
+
     return fsPromise.copyFile(filePath, localFileName).then(
       () => { return fsPromise.unlink(filePath).then(r => { return true; }, e => { log.warn("Archiver", `Unable to remove file: ${e.message}`); return false; }) },
       e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); return false; }
