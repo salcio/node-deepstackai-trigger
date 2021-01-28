@@ -57,7 +57,7 @@ class MotionEvent {
     }
     log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements.`);
 
-    const actionForAdditionalFiles = this.elements.filter(f => f.action === 'move') ? 'move' : 'remove';
+    const actionForAdditionalFiles = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
     return Promise.all(this.elements.map(async e => {
       e.attempt++;
       if (e.action === 'move') {
