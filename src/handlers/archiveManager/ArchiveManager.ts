@@ -100,8 +100,7 @@ class MotionEvent {
   }
 
   public addElement(element: Element) {
-
-    const existing = this.elements.filter(e => e.file == element.file && e.folder == element.folder)[0];
+    const existing = this.elements.filter(e => e.file == element.file)[0];
     if (!existing) {
       this.elements.push(element);
     }
@@ -111,6 +110,7 @@ class MotionEvent {
         existing.attempt = 0;
         existing.dateAdded = element.dateAdded;
         existing.dateToArchive = element.dateToArchive
+        existing.folder = element.folder;
       }
     }
   }
@@ -237,7 +237,7 @@ export default class ArchiveManager {
   }
 
   static async move(filePath: string, folderToMoveTo: string): Promise<boolean> {
-    log.verbose("Archiver", `coping ${filePath}`);
+    log.verbose("Archiver", `coping ${filePath} to ${folderToMoveTo || ArchiveManager.ArchiveFolder}`);
 
     const localFilePath = path.join(LocalStorageManager.localStoragePath, folderToMoveTo || ArchiveManager.ArchiveFolder);
     const localFileName = path.join(localFilePath, path.basename(filePath));
