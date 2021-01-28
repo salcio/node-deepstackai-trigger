@@ -69,7 +69,7 @@ class MotionEvent {
       e.success = await remove(e.file);
       return;
     }).concat(
-      (await this.getPossibleFiles()).map(async f => {
+      (await this.getPossibleFiles()).filter(f => this.elements.filter(e => e.file == f).length == 0).map(async f => {
         if (eventMainAction === 'move') {
           await move(f, this.getDestinationFolderForFile(f, destinationFolder));
           return;
