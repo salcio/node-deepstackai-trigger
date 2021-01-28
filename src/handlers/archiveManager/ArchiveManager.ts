@@ -80,6 +80,10 @@ class MotionEvent {
 
     log.verbose("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
 
+    if (this.isArchived()) {
+      log.verbose("Archiver", `elements: ${JSON.stringify(this.elements)}`);
+    }
+
     return result;
   }
 
