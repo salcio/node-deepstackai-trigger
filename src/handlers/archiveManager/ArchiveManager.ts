@@ -55,11 +55,12 @@ class MotionEvent {
     if (!this.canAction()) {
       return;
     }
-    log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements.`);
-
     const eventMainAction = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
     const destinationFolder = this.elements.filter(f => f.action === 'move' && f.folder).map(f => f.folder).reduce((p, c) => (c == p || c == null) ? p : p == null ? c : null, null);
-    return Promise.all(this.elements.map(async e => {
+
+    log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements. Event main action is '${eventMainAction}' and destination folder is '${destinationFolder}'`);
+
+    const result = await Promise.all(this.elements.map(async e => {
       e.attempt++;
       if (e.action === 'move' || eventMainAction === 'move') {
         e.success = await move(e.file, this.getDestinationFolderForFile(e.file, destinationFolder || e.folder));
@@ -76,6 +77,10 @@ class MotionEvent {
         await remove(f);
         return;
       })));
+
+    log.verbose("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
+
+    return result;
   }
 
   getDestinationFolderForFile(f: string, folder: string): string {
