@@ -58,7 +58,7 @@ class MotionEvent {
     log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements.`);
 
     const eventMainAction = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
-    const destinationFolder = this.elements.filter(f => f.action === 'move' && f.folder).map(f => f.folder).reduce((p, c) => (c == p || c == null) ? p : p == null ? c : null);
+    const destinationFolder = this.elements.filter(f => f.action === 'move' && f.folder).map(f => f.folder).reduce((p, c) => (c == p || c == null) ? p : p == null ? c : null, null);
     return Promise.all(this.elements.map(async e => {
       e.attempt++;
       if (e.action === 'move' || eventMainAction === 'move') {
