@@ -208,15 +208,12 @@ export default class ArchiveManager {
 
   public static async runLog(): Promise<void> {
     ArchiveManager.archiverLog = ArchiveManager.archiverLog || [];
-    const result = Promise.all(ArchiveManager.archiverLog.map(event => {
-      return event.archive(ArchiveManager.move, ArchiveManager.remove);
-    })).then(() => {
-      ArchiveManager.archiverLog = ArchiveManager.archiverLog.filter(e => !e.isArchived());
-    });
+
+    await Promise.all(ArchiveManager.archiverLog.map(event => event.archive(ArchiveManager.move, ArchiveManager.remove)));
+
+    ArchiveManager.archiverLog = ArchiveManager.archiverLog.filter(e => !e.isArchived());
 
     ArchiveManager._backgroundTimer = setTimeout(ArchiveManager.runLog, 6000);
-
-    return result;
   }
 
   static markFileForAction(fileName: string, action: string, config: ArchiveConfig, folder?: string,): void {
@@ -241,7 +238,7 @@ export default class ArchiveManager {
     }
 
     return fsPromise.copyFile(filePath, localFileName).then(
-      () => { return fsPromise.unlink(filePath).then(r => { return true; }, e => { log.warn("Archiver", `Unable to remove file: ${e.message}`); return false; }) },
+      () => { return fsPromise.unlink(filePath).then(() => { return true; }, e => { log.warn("Archiver", `Unable to remove file: ${e.message}`); return false; }) },
       e => { log.warn("Archiver", `Unable to copy to local storage: ${e.message}`); return false; }
     );
   }
