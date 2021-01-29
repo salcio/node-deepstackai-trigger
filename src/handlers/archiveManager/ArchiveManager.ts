@@ -26,9 +26,8 @@ type Element = {
 };
 
 class MotionEvent {
-
   static possiblePostfixed = ['_att'];
-  static longesEventDuration = 13;
+  static longesEventDuration = 15;
   static additionalPaths = [path.join(LocalStorageManager.localStoragePath, LocalStorageManager.Locations.Annotations)];
 
   eventId: string;
@@ -43,8 +42,24 @@ class MotionEvent {
     this.elements = [];
   }
 
-  public isSame(event: MotionEvent): boolean {
-    return event.eventId == this.eventId && event.startTime >= this.startTime && event.startTime < moment(this.startTime).add(MotionEvent.longesEventDuration, "seconds").toDate();
+  replace(event: MotionEvent) {
+    this.eventId = event.eventId;
+    this.startTime = event.startTime <= this.startTime ? event.startTime : this.startTime;
+    this.basePath = event.basePath;
+    this.elements = this.elements.concat(event.elements);
+  }
+
+  public isSame(event: MotionEvent): { same: boolean, rightOrder?: boolean } {
+    if (event.eventId != this.eventId) {
+      return { same: false };
+    }
+    if (event.startTime >= this.startTime && event.startTime < moment(this.startTime).add(MotionEvent.longesEventDuration, "seconds").toDate()) {
+      return { same: true, rightOrder: true };
+    }
+    if (this.startTime >= event.startTime && this.startTime < moment(event.startTime).add(MotionEvent.longesEventDuration, "second").toDate()) {
+      return { same: true, rightOrder: false };
+    }
+    return { same: false };
   }
 
   public canAction(): boolean {
@@ -227,18 +242,23 @@ export default class ArchiveManager {
 
   static markFileForAction(fileName: string, action: string, config: ArchiveConfig, folder?: string,): void {
     const event = MotionEvent.getFromFilePath(fileName);
-    let existing = ArchiveManager.archiverLog.filter(el => el.isSame(event))[0];
+    let existing = ArchiveManager.archiverLog.map(el => ({ el, same: el.isSame(event) })).filter(e => e.same.same)[0];
 
     if (!existing) {
       log.info('Archiver', `Adding new event ${event.eventId}/${event.startTime}`)
       ArchiveManager.archiverLog.push(event);
-      existing = event;
+      existing = { el: event, same: { same: false } };
     }
-    existing.addElement({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
+
+    if (existing.same.same && !existing.same.rightOrder) {
+      existing.el.replace(event);
+    }
+
+    existing.el.addElement({ action: action, file: fileName, attempt: 0, success: false, folder: folder, dateAdded: new Date(), dateToArchive: new Date(new Date().getTime() + config.timeToKeep) });
   }
 
   static async move(filePath: string, folderToMoveTo: string): Promise<boolean> {
-    log.verbose("Archiver", `coping ${filePath} to ${folderToMoveTo || ArchiveManager.ArchiveFolder}`);
+    log.verbose("Archiver", `moving ${filePath} to ${folderToMoveTo || ArchiveManager.ArchiveFolder}`);
 
     const localFilePath = path.join(LocalStorageManager.localStoragePath, folderToMoveTo || ArchiveManager.ArchiveFolder);
     const localFileName = path.join(localFilePath, path.basename(filePath));
