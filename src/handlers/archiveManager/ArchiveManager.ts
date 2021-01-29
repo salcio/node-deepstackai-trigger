@@ -8,6 +8,7 @@ import Trigger from "../../Trigger";
 import mkdirp from "mkdirp";
 import path from "path";
 import { promises as fsPromise } from "fs";
+import glob from "glob"
 
 import IDeepStackPrediction from "../../types/IDeepStackPrediction";
 import * as LocalStorageManager from "../../LocalStorageManager";
@@ -84,7 +85,7 @@ class MotionEvent {
       e.success = await remove(e.file);
       return;
     }).concat(
-      (await this.getPossibleFiles()).filter(f => this.elements.filter(e => e.file == f).length == 0).map(async f => {
+      this.getPossibleFiles().filter(f => this.elements.filter(e => e.file == f).length == 0).map(async f => {
         if (eventMainAction === 'move') {
           await move(f, this.getDestinationFolderForFile(f, destinationFolder));
           return;
@@ -129,32 +130,29 @@ class MotionEvent {
       }
     }
   }
-  public async getPossibleFiles(): Promise<string[]> {
+  public getPossibleFiles(): string[] {
     const fileNameBases = [this.basePath, ...MotionEvent.additionalPaths].map(p => `${path.join(p, this.eventId)}`);
 
     const fileNameBasesWithPostfixes = [].concat(...['', ...MotionEvent.possiblePostfixed].map(p => fileNameBases.map(b => b + p)));
 
     const fileNameBasesWithPostfixesAndTimes = [].concat(
       ...Array.from(Array<number>(MotionEvent.longesEventDuration).keys())
-        .map(t => fileNameBasesWithPostfixes.map(f => `${f}${moment(this.startTime).add(t, "seconds").format("YYYYMMDDHHmmss")}`))
+        .map(t => fileNameBasesWithPostfixes.map(f => `${f}${moment(this.startTime).add(t, "seconds").format("YYYYMMDDHHmmss*")}`))
     );
 
     const fullFileNames = [].concat(...['.mp4', '.jpg'].map(e => fileNameBasesWithPostfixesAndTimes.map(f => f + e)));
-
-    const filePromises = fullFileNames
-      .map(async f => {
+    const files = [].concat(...fullFileNames
+      .map(f => {
         try {
-          const s = await fsPromise.stat(f);
-          return s.isFile() ? f : null;
+          return glob.sync(f, { absolute: true });
         } catch (e) {
-          return null;
+          return [];
         }
-      })
+      }))
       .filter(f => f != null);
+    log.verbose('Archiver', `possible files: ${fullFileNames}`);
 
-    return [
-      ...(await Promise.all(filePromises)).filter(r => r != null)
-    ];
+    return files;
   }
 
   static getFromFilePath(filePath: string): MotionEvent {
