@@ -66,8 +66,8 @@ class MotionEvent {
     return this.elements.reduce((p, c) => p && c.dateToArchive <= new Date(), true);
   }
 
-  public async archive(move: (filePath: string, folderToMoveTo: string) => Promise<boolean>, remove: (filePath: string) => Promise<boolean>): Promise<void[]> {
-    if (!this.canAction()) {
+  public async archive(move: (filePath: string, folderToMoveTo: string) => Promise<boolean>, remove: (filePath: string) => Promise<boolean>, checkTimeToKeep: boolean): Promise<void[]> {
+    if (checkTimeToKeep && !this.canAction()) {
       return;
     }
     const eventMainAction = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
@@ -181,7 +181,7 @@ export default class ArchiveManager {
 
   static async shutDown(): Promise<void> {
     ArchiveManager.stopBackgroundArchiving()
-    return ArchiveManager.runLog();
+    return ArchiveManager.runLog(true);
   }
 
   public static async initialize(): Promise<void> {
@@ -230,10 +230,10 @@ export default class ArchiveManager {
     return ArchiveManager.markFileForAction(fileName, 'move', trigger.archiveConfig, folder);
   }
 
-  public static async runLog(): Promise<void> {
+  public static async runLog(shutdown?: boolean): Promise<void> {
     ArchiveManager.archiverLog = ArchiveManager.archiverLog || [];
 
-    await Promise.all(ArchiveManager.archiverLog.map(event => event.archive(ArchiveManager.move, ArchiveManager.remove)));
+    await Promise.all(ArchiveManager.archiverLog.map(event => event.archive(ArchiveManager.move, ArchiveManager.remove, !shutdown)));
 
     ArchiveManager.archiverLog = ArchiveManager.archiverLog.filter(e => !e.isArchived());
 
