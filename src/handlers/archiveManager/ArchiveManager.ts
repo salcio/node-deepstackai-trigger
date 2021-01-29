@@ -58,7 +58,7 @@ class MotionEvent {
     const eventMainAction = this.elements.filter(f => f.action === 'move').length > 0 ? 'move' : 'remove';
     const destinationFolder = this.elements.filter(f => f.action === 'move' && f.folder).map(f => f.folder).reduce((p, c) => (c == p || c == null) ? p : p == null ? c : null, null);
 
-    log.verbose("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements. Event main action is '${eventMainAction}' and destination folder is '${destinationFolder}'`);
+    log.info("Archiver", `archiving event ${this.eventId} ${this.startTime}, with ${this.elements.length} elements. Event main action is '${eventMainAction}' and destination folder is '${destinationFolder}'`);
 
     const result = await Promise.all(this.elements.map(async e => {
       e.attempt++;
@@ -78,10 +78,10 @@ class MotionEvent {
         return;
       })));
 
-    log.verbose("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
+    log.info("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
 
     if (!this.isArchived()) {
-      log.verbose("Archiver", `elements: ${JSON.stringify(this.elements)}`);
+      log.warn("Archiver", `elements: ${JSON.stringify(this.elements)}`);
     }
 
     return result;
@@ -230,6 +230,7 @@ export default class ArchiveManager {
     let existing = ArchiveManager.archiverLog.filter(el => el.isSame(event))[0];
 
     if (!existing) {
+      log.info('Archiver', `Adding new event ${event.eventId}/${event.startTime}`)
       ArchiveManager.archiverLog.push(event);
       existing = event;
     }

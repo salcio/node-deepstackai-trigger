@@ -79,7 +79,7 @@ export default class Trigger {
   }
 
   private async analyzeImage(fileName: string): Promise<IDeepStackPrediction[] | undefined> {
-    log.verbose(`Trigger ${this.name}`, `${fileName}: Analyzing`);
+    log.info(`Trigger ${this.name}`, `${fileName}: Analyzing`);
     const startTime = new Date();
     const analysis = await analyzeImage(fileName, this.customEndpoint).catch(e => {
       log.warn(`Trigger ${this.name}`, e);
@@ -94,11 +94,11 @@ export default class Trigger {
     }
 
     if (analysis.predictions.length == 0) {
-      log.verbose(`Trigger ${this.name}`, `${fileName}: No objects detected. (${this.analysisDuration} ms)`);
+      log.info(`Trigger ${this.name}`, `${fileName}: No objects detected. (${this.analysisDuration} ms)`);
       return undefined;
     }
 
-    log.verbose(
+    log.info(
       `Trigger ${this.name}`,
       `${fileName}: Found at least one object in the photo. (${this.analysisDuration} ms)`,
     );

@@ -16,8 +16,8 @@ import * as Settings from "./Settings";
  * @param source The source of the message
  * @param message The message
  */
-function formatMessage(source: string, message: string) {
-  return `${moment().format()} [${source}] ${message}`;
+function formatMessage(level: string, source: string, message: string) {
+  return `${moment().format()} [${level}] [${source}] ${message}`;
 }
 
 export function verbose(source: string, message: string): void {
@@ -25,7 +25,7 @@ export function verbose(source: string, message: string): void {
     return;
   }
 
-  info(source, message);
+  console.log(formatMessage('verbose', source, message));
 }
 /**
  * Logs an informational message to the console.
@@ -33,7 +33,7 @@ export function verbose(source: string, message: string): void {
  * @param message The message
  */
 export function info(source: string, message: string): void {
-  console.log(formatMessage(source, message));
+  console.log(formatMessage('info', source, message));
 }
 
 /**
@@ -42,7 +42,7 @@ export function info(source: string, message: string): void {
  * @param message The message
  */
 export function warn(source: string, message: string): void {
-  console.log(chalk.yellow(formatMessage(source, message)));
+  console.log(chalk.yellow(formatMessage('warn', source, message)));
 }
 
 /**
@@ -51,5 +51,5 @@ export function warn(source: string, message: string): void {
  * @param message The message
  */
 export function error(source: string, message: string): void {
-  console.log(chalk.red(formatMessage(source, message)));
+  console.log(chalk.red(formatMessage('error', source, message)));
 }
