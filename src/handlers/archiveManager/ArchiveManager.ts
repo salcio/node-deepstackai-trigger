@@ -94,7 +94,7 @@ class MotionEvent {
         return;
       })));
 
-    //log.info("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
+    log.info("Archiver", `archiving of event ${this.eventId} ${this.startTime} finished. Result isArchived ${this.isArchived()}.`);
 
     if (!this.isArchived()) {
       log.warn("Archiver", `elements: ${JSON.stringify(this.elements)}`);
@@ -150,7 +150,8 @@ class MotionEvent {
         }
       }))
       .filter(f => f != null);
-    log.verbose('Archiver', `possible files: ${fullFileNames}`);
+
+    log.verbose('Archiver', `possible files: ${files}`);
 
     return files;
   }
