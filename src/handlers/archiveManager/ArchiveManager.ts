@@ -27,7 +27,7 @@ type Element = {
 };
 
 class MotionEvent {
-  static possiblePostfixed = ['_att'];
+  static possiblePostfixed = ['att_'];
   static longesEventDuration = 15;
   static additionalPaths = [path.join(LocalStorageManager.localStoragePath, LocalStorageManager.Locations.Annotations)];
 
